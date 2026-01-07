@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>英単語トレーニング</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, "YuGothic", "Yu Gothic", sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 16px 20px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 16px;
+    }
+    #question-box {
+      margin-bottom: 12px;
+    }
+    #question-number {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    #question-text {
+      font-size: 18px;
+      font-weight: 500;
+    }
+    form {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 6px 8px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 6px 12px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+    }
+    button[type="submit"] {
+      background: #007aff;
+      color: #fff;
+    }
+    #next-btn {
+      margin-top: 10px;
+      background: #444;
+      color: #fff;
+      display: none;
+    }
+    #result {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .result-ok {
+      color: #0a7d17;
+    }
+    .result-ng {
+      color: #c41212;
+    }
+    .result-warn {
+      color: #b36b00;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>英単語トレーニング</h1>
+
+    <div id="question-box">
+      <div id="question-number"></div>
+      <div id="question-text"></div>
+    </div>
+
+    <form id="answer-form">
+      <input
+        type="text"
+        id="answer-input"
+        autocomplete="off"
+        placeholder="ここに答えを入力"
+      >
+      <button type="submit">答える</button>
+    </form>
+
+    <div id="result"></div>
+    <button id="next-btn">次の問題</button>
+  </div>
+
+  <script>
+    // ここに単語リストを用意します --------------------
+    // prompt : 出題（日本語など）
+    // answer : 正解の英単語（複数OK → "apple/apples" のように / や , で区切る）
+    const questions = [
+      { prompt: "リンゴ",      answer: "apple" },
+      { prompt: "バナナ",      answer: "banana" },
+      { prompt: "図書館",      answer: "library" },
+      { prompt: "走る",        answer: "run/runs" },      // 複数パターン例
+      { prompt: "勉強する",    answer: "study/studies" } // 複数パターン例
+    ];
+    // ---------------------------------------------
+
+    let currentIndex = -1;
+
+    function normalize(str) {
+      return str.trim().toLowerCase();
+    }
+
+    function pickRandomQuestion() {
+      if (questions.length === 0) return;
+
+      let newIndex;
+      // 同じ問題が続かないように
+      do {
+        newIndex = Math.floor(Math.random() * questions.length);
+      } while (questions.length > 1 && newIndex === currentIndex);
+
+      currentIndex = newIndex;
+      const q = questions[currentIndex];
+
+      document.getElementById("question-number").textContent =
+        "No. " + (currentIndex + 1);
+      document.getElementById("question-text").textContent = q.prompt;
+
+      document.getElementById("answer-input").value = "";
+      document.getElementById("answer-input").focus();
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = "";
+      resultDiv.className = "";
+
+      document.getElementById("next-btn").style.display = "none";
+    }
+
+    document.getElementById("answer-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      if (currentIndex < 0) return; // 念のため
+
+      const input = normalize(document.getElementById("answer-input").value);
+      const correctRaw = questions[currentIndex].answer;
+      const resultDiv = document.getElementById("result");
+
+      if (!input) {
+        resultDiv.textContent = "何か入力してください。";
+        resultDiv.className = "result-warn";
+        return;
+      }
+
+      // "apple/apples, an apple" のような形を全部候補にする
+      const correctCandidates = correctRaw
+        .split(/[\/,]/)
+        .map(s => normalize(s))
+        .filter(s => s.length > 0);
+
+      if (correctCandidates.includes(input)) {
+        resultDiv.textContent = "正解！";
+        resultDiv.className = "result-ok";
+      } else {
+        resultDiv.textContent = "不正解… 正解: " + correctRaw;
+        resultDiv.className = "result-ng";
+      }
+
+      document.getElementById("next-btn").style.display = "inline-block";
+    });
+
+    document.getElementById("next-btn").addEventListener("click", function() {
+      pickRandomQuestion();
+    });
+
+    window.addEventListener("load", pickRandomQuestion);
+  </script>
+</body>
+</html>
