@@ -1,74 +1,335 @@
-let currentIndex = -1;
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>英単語トレーニング</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-// 文字を正規化
-function normalize(str) {
-  return str.trim().toLowerCase().replace(/\s+/g, " ");
-}
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      min-height: 100vh;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "Helvetica Neue", Arial, "YuGothic", "Yu Gothic",
+        "Meiryo", sans-serif;
+      background: #eef2f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-// ⭐ 毎回ランダム抽選（直前と重複しない）
-function pickRandomQuestion() {
-  if (questions.length === 0) return;
+    .app {
+      width: 100%;
+      max-width: 520px;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px 18px 22px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    }
 
-  let newIndex;
-  do {
-    newIndex = Math.floor(Math.random() * questions.length);
-  } while (questions.length > 1 && newIndex === currentIndex);
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+    }
 
-  currentIndex = newIndex;
-  const q = questions[currentIndex];
+    .subtitle {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
 
-  document.getElementById("question-number").textContent =
-    `No. ${currentIndex + 1} / ${questions.length}`;
-  document.getElementById("question-text").textContent = q.prompt;
+    .question-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
 
-  const input = document.getElementById("answer-input");
-  input.value = "";
-  input.focus();
+    .question-label {
+      font-weight: 600;
+      color: #4b5563;
+    }
 
-  const resultDiv = document.getElementById("result");
-  resultDiv.textContent = "";
-  resultDiv.className = "result";
+    .question-text {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      margin-bottom: 14px;
+    }
 
-  document.getElementById("next-btn").style.display = "none";
-  document.getElementById("submit-btn").disabled = false;
-}
+    form {
+      margin: 0;
+    }
 
-// 回答処理
-document.getElementById("answer-form").addEventListener("submit", function(e) {
-  e.preventDefault();
-  if (currentIndex < 0) return;
+    .field-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
 
-  const inputEl = document.getElementById("answer-input");
-  const answer = normalize(inputEl.value);
-  const resultDiv = document.getElementById("result");
+    .field-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
 
-  if (!answer) {
-    resultDiv.textContent = "何か入力してください。";
-    resultDiv.className = "result result-warn";
-    return;
-  }
+    input[type="text"] {
+      flex: 1;
+      font-size: 18px;
+      padding: 10px 11px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      outline: none;
+      box-sizing: border-box;
+    }
 
-  const rawCorrect = questions[currentIndex].answer;
-  const candidates = rawCorrect
-    .split(/[\/,]/)
-    .map(s => normalize(s))
-    .filter(s => s.length > 0);
+    input[type="text"]:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.22);
+    }
 
-  if (candidates.includes(answer)) {
-    resultDiv.textContent = "◎ 正解です！";
-    resultDiv.className = "result result-ok";
-  } else {
-    resultDiv.innerHTML =
-      `<span class="result-ng">× 不正解です。</span>` +
-      `<div class="correct-answer">正解: ${rawCorrect}</div>`;
-  }
+    button {
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 10px;
+      padding: 10px 14px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.1s ease,
+        background-color 0.1s ease;
+      white-space: nowrap;
+    }
 
-  document.getElementById("next-btn").style.display = "block";
-  document.getElementById("submit-btn").disabled = true;
-});
+    button:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
 
-// ⭐ 次も必ずランダム抽選
-document.getElementById("next-btn").addEventListener("click", pickRandomQuestion);
+    .btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
+    }
 
-// 初期表示
-window.addEventListener("load", pickRandomQuestion);
+    .btn-primary:disabled {
+      background: #9ca3af;
+      box-shadow: none;
+      cursor: default;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      margin-top: 8px;
+      background: #0f172a;
+      color: #f9fafb;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.4);
+      display: none;
+    }
+
+    .result {
+      margin-top: 12px;
+      font-size: 15px;
+      min-height: 1.4em;
+    }
+
+    .result-ok {
+      color: #059669;
+      font-weight: 600;
+    }
+
+    .result-ng {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    .result-warn {
+      color: #b45309;
+      font-weight: 600;
+    }
+
+    .correct-answer {
+      font-size: 13px;
+      color: #4b5563;
+      margin-top: 2px;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: right;
+    }
+
+    @media (min-width: 768px) {
+      body {
+        padding: 32px;
+      }
+      .app {
+        padding: 22px 22px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>英単語トレーニング</h1>
+    <div class="subtitle">
+      日本語の意味を見て、英単語を入力してください。
+    </div>
+
+    <div class="question-meta">
+      <div class="question-label">問題</div>
+      <div id="question-number"></div>
+    </div>
+    <div id="question-text" class="question-text"></div>
+
+    <form id="answer-form" autocomplete="off">
+      <div class="field-label">答え（英単語）</div>
+      <div class="field-row">
+        <input
+          type="text"
+          id="answer-input"
+          inputmode="latin"
+          autocapitalize="none"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="ここに入力"
+        >
+        <button type="submit" class="btn-primary" id="submit-btn">
+          答える
+        </button>
+      </div>
+    </form>
+
+    <div id="result" class="result"></div>
+    <button id="next-btn" class="btn-secondary">
+      ▶ 次の問題へ
+    </button>
+
+    <div class="footer-note">
+      Enterキーでも回答できます
+    </div>
+  </div>
+
+  <script>
+    // ------------------------------
+    // 単語リスト
+    // prompt: 出題テキスト（日本語など）
+    // answer: 正解の英単語
+    //   複数OK → "study/studies" のように / や , で区切る
+    // ------------------------------
+    const questions = [
+      { prompt: "リンゴ",   answer: "apple" },
+      { prompt: "バナナ",   answer: "banana" },
+      { prompt: "図書館",   answer: "library" },
+      { prompt: "走る",     answer: "run/runs" },
+      { prompt: "勉強する", answer: "study/studies" },
+      { prompt: "教室",     answer: "classroom" },
+      { prompt: "朝食",     answer: "breakfast" },
+      { prompt: "夕食",     answer: "dinner/supper" }
+    ];
+    // ↑ ここをお好きなリストに書き換えてください
+
+    // ==============================
+    // ロジック
+    // ==============================
+
+    // 出題順を管理する配列（シャッフル済みインデックス）
+    let order = [];
+    let orderPos = 0;   // 何問目か
+
+    function normalize(str) {
+      return str.trim().toLowerCase().replace(/\s+/g, " ");
+    }
+
+    // Fisher–Yates でシャッフル
+    function shuffleOrder() {
+      order = [...Array(questions.length).keys()];
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      orderPos = 0;
+    }
+
+    function setQuestion(qIndex) {
+      const q = questions[qIndex];
+
+      document.getElementById("question-number").textContent =
+        `No. ${qIndex + 1} / ${questions.length}`;
+      document.getElementById("question-text").textContent = q.prompt;
+
+      const input = document.getElementById("answer-input");
+      input.value = "";
+      input.focus();
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = "";
+      resultDiv.className = "result";
+
+      document.getElementById("next-btn").style.display = "none";
+      document.getElementById("submit-btn").disabled = false;
+    }
+
+    function showNextQuestion() {
+      if (questions.length === 0) return;
+
+      // 1周終わったらまたシャッフルして新しいラウンド
+      if (orderPos >= order.length) {
+        shuffleOrder();
+      }
+
+      const qIndex = order[orderPos];
+      orderPos += 1;
+      setQuestion(qIndex);
+    }
+
+    document.getElementById("answer-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      if (questions.length === 0 || order.length === 0) return;
+
+      const lastIndex = order[orderPos - 1]; // 現在の問題
+      const inputEl = document.getElementById("answer-input");
+      const answer = normalize(inputEl.value);
+      const resultDiv = document.getElementById("result");
+
+      if (!answer) {
+        resultDiv.textContent = "何か入力してください。";
+        resultDiv.className = "result result-warn";
+        return;
+      }
+
+      const rawCorrect = questions[lastIndex].answer;
+      const candidates = rawCorrect
+        .split(/[\/,]/)
+        .map(s => normalize(s))
+        .filter(s => s.length > 0);
+
+      if (candidates.includes(answer)) {
+        resultDiv.textContent = "◎ 正解です！";
+        resultDiv.className = "result result-ok";
+      } else {
+        resultDiv.innerHTML =
+          `<span class="result-ng">× 不正解です。</span>` +
+          `<div class="correct-answer">正解: ${rawCorrect}</div>`;
+        resultDiv.className = "result";
+      }
+
+      document.getElementById("next-btn").style.display = "block";
+      document.getElementById("submit-btn").disabled = true;
+    });
+
+    document.getElementById("next-btn").addEventListener("click", showNextQuestion);
+
+    // 初期化
+    window.addEventListener("load", () => {
+      shuffleOrder();
+      showNextQuestion();
+    });
+  </script>
+</body>
+</html>
