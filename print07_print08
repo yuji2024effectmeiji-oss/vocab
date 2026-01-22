@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>英単語トレーニング</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      min-height: 100vh;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "Helvetica Neue", Arial, "YuGothic", "Yu Gothic",
+        "Meiryo", sans-serif;
+      background: #eef2f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px 18px 22px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .question-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    .question-label {
+      font-weight: 600;
+      color: #4b5563;
+    }
+
+    .question-text {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      margin-bottom: 14px;
+    }
+
+    form {
+      margin: 0;
+    }
+
+    .field-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      font-size: 18px;
+      padding: 10px 11px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    input[type="text"]:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.22);
+    }
+
+    button {
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 10px;
+      padding: 10px 14px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.1s ease,
+        background-color 0.1s ease;
+      white-space: nowrap;
+    }
+
+    button:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-primary:disabled {
+      background: #9ca3af;
+      box-shadow: none;
+      cursor: default;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      margin-top: 8px;
+      background: #0f172a;
+      color: #f9fafb;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.4);
+      display: none;
+    }
+
+    .result {
+      margin-top: 12px;
+      font-size: 15px;
+      min-height: 1.4em;
+    }
+
+    .result-ok {
+      color: #059669;
+      font-weight: 600;
+    }
+
+    .result-ng {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    .result-warn {
+      color: #b45309;
+      font-weight: 600;
+    }
+
+    .correct-answer {
+      font-size: 13px;
+      color: #4b5563;
+      margin-top: 2px;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: right;
+    }
+
+    @media (min-width: 768px) {
+      body {
+        padding: 32px;
+      }
+      .app {
+        padding: 22px 22px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>英単語トレーニング</h1>
+    <div class="subtitle">
+      日本語の意味を見て、英単語を入力してください。
+    </div>
+
+    <div class="question-meta">
+      <div class="question-label">問題</div>
+      <div id="question-number"></div>
+    </div>
+    <div id="question-text" class="question-text"></div>
+
+    <form id="answer-form" autocomplete="off">
+      <div class="field-label">答え（英語）</div>
+      <div class="field-row">
+        <input
+          type="text"
+          id="answer-input"
+          inputmode="latin"
+          autocapitalize="none"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="ここに入力"
+        >
+        <button type="submit" class="btn-primary" id="submit-btn">
+          答える
+        </button>
+      </div>
+    </form>
+
+    <div id="result" class="result"></div>
+    <button id="next-btn" class="btn-secondary">
+      ▶ 次の問題へ
+    </button>
+
+    <div class="footer-note">
+      Enterキーでも回答できます
+    </div>
+  </div>
+
+  <script>
+    // print07 + print08 統合（CSV反映済み）
+    const questions = [
+  {
+    "prompt": "認識している",
+    "answer": "be aware of"
+  },
+  {
+    "prompt": "生まれつき",
+    "answer": "be born with"
+  },
+  {
+    "prompt": "心配する",
+    "answer": "be concerned about"
+  },
+  {
+    "prompt": "精通している",
+    "answer": "be familiar with"
+  },
+  {
+    "prompt": "関与している",
+    "answer": "be involved in"
+  },
+  {
+    "prompt": "〜で有名だ",
+    "answer": "be known for"
+  },
+  {
+    "prompt": "〜を越えて",
+    "answer": "beyond"
+  },
+  {
+    "prompt": "10億",
+    "answer": "billion"
+  },
+  {
+    "prompt": "生物学の",
+    "answer": "biological"
+  },
+  {
+    "prompt": "生物学",
+    "answer": "biology"
+  },
+  {
+    "prompt": "非難する",
+    "answer": "blame"
+  },
+  {
+    "prompt": "広い",
+    "answer": "broad"
+  },
+  {
+    "prompt": "計算する",
+    "answer": "calculate"
+  },
+  {
+    "prompt": "穏やかな",
+    "answer": "calm"
+  },
+  {
+    "prompt": "候補者",
+    "answer": "candidate"
+  },
+  {
+    "prompt": "〜できる",
+    "answer": "capable of"
+  },
+  {
+    "prompt": "容量",
+    "answer": "capacity"
+  },
+  {
+    "prompt": "捕らえる",
+    "answer": "capture"
+  },
+  {
+    "prompt": "二酸化炭素",
+    "answer": "carbon dioxide"
+  },
+  {
+    "prompt": "実行する",
+    "answer": "carry out"
+  },
+  {
+    "prompt": "原因",
+    "answer": "cause"
+  },
+  {
+    "prompt": "やめる",
+    "answer": "cease"
+  },
+  {
+    "prompt": "祝う",
+    "answer": "celebrate"
+  },
+  {
+    "prompt": "世紀",
+    "answer": "century"
+  }
+];
+
+    let order = [];
+    let pos = 0;           // 次に出す位置
+    let currentIndex = -1; // 現在の問題インデックス（questions内）
+
+    function normalize(str) {
+      return String(str).trim().toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function shuffleOrder() {
+      order = Array.from({ length: questions.length }, (_, i) => i);
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      pos = 0;
+    }
+
+    function setQuestion(qIndex) {
+      currentIndex = qIndex;
+
+      // 進捗表示（シャッフル順の何問目か）
+      document.getElementById("question-number").textContent =
+        `Q ${pos} / ${questions.length}`;
+
+      document.getElementById("question-text").textContent = questions[qIndex].prompt;
+
+      const input = document.getElementById("answer-input");
+      input.value = "";
+      input.focus();
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = "";
+      resultDiv.className = "result";
+
+      document.getElementById("next-btn").style.display = "none";
+      document.getElementById("submit-btn").disabled = false;
+    }
+
+    function showNextQuestion() {
+      if (questions.length === 0) return;
+
+      if (order.length === 0 || pos >= order.length) {
+        shuffleOrder();
+      }
+
+      const qIndex = order[pos];
+      pos += 1;
+      setQuestion(qIndex);
+    }
+
+    document.getElementById("answer-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      if (currentIndex < 0) return;
+
+      const inputEl = document.getElementById("answer-input");
+      const answer = normalize(inputEl.value);
+      const resultDiv = document.getElementById("result");
+
+      if (!answer) {
+        resultDiv.textContent = "何か入力してください。";
+        resultDiv.className = "result result-warn";
+        return;
+      }
+
+      const rawCorrect = questions[currentIndex].answer;
+      const candidates = String(rawCorrect)
+        .split(/[\/,;|]+/)
+        .map(s => normalize(s))
+        .filter(s => s.length > 0);
+
+      if (candidates.includes(answer)) {
+        resultDiv.textContent = "◎ 正解です！";
+        resultDiv.className = "result result-ok";
+      } else {
+        resultDiv.innerHTML =
+          `<span class="result-ng">× 不正解です。</span>` +
+          `<div class="correct-answer">正解: ${rawCorrect}</div>`;
+        resultDiv.className = "result";
+      }
+
+      document.getElementById("next-btn").style.display = "block";
+      document.getElementById("submit-btn").disabled = true;
+    });
+
+    document.getElementById("next-btn").addEventListener("click", showNextQuestion);
+
+    window.addEventListener("load", () => {
+      shuffleOrder();
+      showNextQuestion();
+    });
+  </script>
+</body>
+</html>
